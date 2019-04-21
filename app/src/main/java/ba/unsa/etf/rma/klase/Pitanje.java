@@ -14,7 +14,6 @@ public class Pitanje implements Serializable{
     private String tacan;
 
     public Pitanje(String naziv, String tekstPitanja, ArrayList<String> odgovori, String tacan) {
-        odgovori = new ArrayList<>();
         this.naziv = naziv;
         this.tekstPitanja = tekstPitanja;
         this.odgovori = odgovori;
@@ -28,7 +27,9 @@ public class Pitanje implements Serializable{
         this.tacan = p.tacan;
     }
 
-    public Pitanje(){}
+    public Pitanje(){
+        odgovori = new ArrayList<>();
+    }
     public String getNaziv() {
         return naziv;
     }
@@ -61,45 +62,20 @@ public class Pitanje implements Serializable{
         return tacan;
     }
 
+    public void dodajOdgovor(String odg){ this.odgovori.add(odg); }
+
     public void setTacan(String tacan) {
         this.tacan = tacan;
     }
 
     public ArrayList<String> dajRandomOdgovore(){
-        Collections.shuffle(odgovori);
-        return odgovori;
+        ArrayList<String> novaPitanja = new ArrayList<String>();
+        if(odgovori!=null){
+            novaPitanja = odgovori;
+        }
+        Collections.shuffle(novaPitanja);
+        return novaPitanja;
     }
 
-//    protected Pitanje(Parcel in) {
-//        naziv = in.readString();
-//        tekstPitanja = in.readString();
-//        odgovori = in.readArrayList(ClassLoader.getSystemClassLoader());
-//        tacan = in.readString();
-//    }
-//
-//    public static final Creator<Pitanje> CREATOR = new Creator<Pitanje>() {
-//        @Override
-//        public Pitanje createFromParcel(Parcel in) {
-//            return new Pitanje(in);
-//        }
-//
-//        @Override
-//        public Pitanje[] newArray(int size) {
-//            return new Pitanje[size];
-//        }
-//    };
-//
-//    @Override
-//    public int describeContents() {
-//        return 0;
-//    }
-//
-//    @Override
-//    public void writeToParcel(Parcel parcel, int i) {
-//        parcel.writeString(naziv);
-//        parcel.writeString(tekstPitanja);
-//        parcel.writeList(odgovori);
-//        parcel.writeString(tacan);
-//    }
 }
 

@@ -5,4 +5,6 @@
     <color name="colorAccent">#c7020c</color>
     <color name="bijela">#FFFFFF</color>
     <color name="zelena">#90EE90</color>
+    <color name="crvena"> #FF3030</color>
+    <color name="grin">#7FFF00</color>
 </resources>

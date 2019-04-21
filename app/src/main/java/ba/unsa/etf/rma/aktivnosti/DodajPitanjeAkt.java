@@ -9,14 +9,13 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import ba.unsa.etf.rma.R;
 import ba.unsa.etf.rma.klase.Kategorija;
 import ba.unsa.etf.rma.klase.Kviz;
 import ba.unsa.etf.rma.klase.Pitanje;
+
 
 public class DodajPitanjeAkt extends AppCompatActivity {
 
@@ -24,32 +23,35 @@ public class DodajPitanjeAkt extends AppCompatActivity {
     ////////////////////
 
     String tacanOdgovor=new String();
-    String naziv = new String();
-    Pitanje pitanje= new Pitanje();
-    ArrayList<Kategorija> kati = new ArrayList<>();
-    final Intent intent = new Intent();
-    ArrayList<Kategorija> kategorije=(ArrayList<Kategorija>) intent.getSerializableExtra("kate");
-    final ArrayList<Pitanje> dodana = (ArrayList<Pitanje>) intent.getSerializableExtra("PitanjaDodana");
-    final ArrayList<Pitanje> moguca = (ArrayList<Pitanje>) intent.getSerializableExtra("PitanjaMoguca");
-    final String tekstKviza= (String) intent.getStringExtra("nazivKv");
-    final ArrayList<Kviz> kvizovi= (ArrayList<Kviz>) intent.getSerializableExtra("kvizoviSvi");
+    ArrayList<Kategorija> kategorije = new ArrayList<>();
+
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dodaj_pitanje_akt);
+        Intent eks = getIntent();
+
+        String a =  eks.getStringExtra("sarma");
+
+        System.out.println(a);
+        final ArrayList<Kategorija> kategorije = (ArrayList<Kategorija>) eks.getSerializableExtra("kate");
+        final ArrayList<Pitanje> dodana = (ArrayList<Pitanje>) eks.getSerializableExtra("dodana");
+        final ArrayList<Pitanje> moguca = (ArrayList<Pitanje>) eks.getSerializableExtra("moguca");
+        final ArrayList<Kviz> kvizovi = (ArrayList<Kviz>) eks.getSerializableExtra("kvizovi");
+        final String naziv = eks.getStringExtra("naziv");
 
 
 
-//        final ArrayList<Pitanje> dodana = (ArrayList<Pitanje>) intent.getSerializableExtra("PitanjaDodana");
-//        final ArrayList<Pitanje> moguca = (ArrayList<Pitanje>) intent.getSerializableExtra("PitanjaMoguca");
-//        final String tekstKviza= (String) intent.getStringExtra("nazivKv");
-//        final ArrayList<Kviz> kvizovi= (ArrayList<Kviz>) intent.getSerializableExtra("kvizoviSvi");
+
 
 
 
         final ListView lvOdgovori = (ListView) findViewById(R.id.lvOdgovori);
-        EditText etNaziv = (EditText) findViewById(R.id.etNaziv);
+        final EditText etNaziv = (EditText) findViewById(R.id.etNaziv);
         final EditText etOdgovor = (EditText) findViewById(R.id.etOdgovor);
         final Button btnDodajOdgovor =(Button) findViewById(R.id.btnDodajOdgovor);
         final Button btnDodajTacan =(Button) findViewById(R.id.btnDodajTacan);
@@ -60,8 +62,7 @@ public class DodajPitanjeAkt extends AppCompatActivity {
         lvOdgovori.setAdapter(adapter);
 
 
-        naziv = etNaziv.getText().toString();
-        final String odgovor = etOdgovor.getText().toString();
+
 
         btnDodajOdgovor.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -97,36 +98,23 @@ public class DodajPitanjeAkt extends AppCompatActivity {
         btnDodajPitanje.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//
-//                Kviz kvizSaNovimPitanjem = new Kviz();
-//                kvizSaNovimPitanjem = (Kviz) vrijednosti.getSerializableExtra("kvizNovoPitanje");
-//                etNaziv.setText(kvizSaNovimPitanjem.getNaziv());
-//                spKategorije.setSelection(Integer.parseInt(kvizSaNovimPitanjem.getKategorija().getId()));
-//                adapterKategorije.notifyDataSetChanged();
-//                adapterDodanaPitanja.notifyDataSetChanged();
-//                adapterMogucaPitanja.notifyDataSetChanged();
 
-//                pitanje.setNaziv(naziv);
-//                pitanje.setTekstPitanja("vra");
-//                pitanje.setOdgovori(odgovori);
-//                pitanje.setTacan(tacanOdgovor);
-//                dodana.add(pitanje);
+                String nazivPitanja = etNaziv.getText().toString();
+                Pitanje p = new Pitanje();
+                p.setTacan(tacanOdgovor);
+                p.setNaziv(nazivPitanja);
+                p.setTekstPitanja("");
+                p.setOdgovori(odgovori);
 
-//                Intent zuja = new Intent(DodajPitanjeAkt.this,DodajKvizAkt.class);
-//                intent.putExtra("ima",true);
-//                Pitanje p = new Pitanje();
-//                p.setTacan(tacanOdgovor);
-//                p.setNaziv(naziv);
-//                p.setTekstPitanja("");
-//                p.setOdgovori(odgovori);
-//              //  dodana.add(p);
-//                  intent.putExtra("Pitanje",true);
-//                  intent.putExtra("Dod",dodana);
-//                  intent.putExtra("Mog",moguca);
-//                  intent.putExtra("Kvi",kvizovi);
-//                  intent.putExtra("Kat",kategorije);;
-//                  intent.putExtra("KviNaziv",tekstKviza);
-//                DodajPitanjeAkt.this.startActivity(zuja);
+                Intent intent = new Intent(DodajPitanjeAkt.this,DodajKvizAkt.class);
+                dodana.add(p);
+                intent.putExtra("listaKategorija",kategorije);
+                intent.putExtra("SviKvizovi",kvizovi);
+                intent.putExtra("dodana",dodana);
+                intent.putExtra("moguca",moguca);
+                intent.putExtra("ime",naziv);
+                intent.putExtra("novoPitanje",true);
+                DodajPitanjeAkt.this.startActivity(intent);
             }
         });
 

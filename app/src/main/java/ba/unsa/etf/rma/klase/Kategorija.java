@@ -37,33 +37,6 @@ public class Kategorija implements Serializable
         this.id = id;
     }
 
-//    protected Kategorija(Parcel in) {
-//        naziv = in.readString();
-//        id = in.readString();
-//    }
-
-//    public static final Creator<Kategorija> CREATOR = new Creator<Kategorija>() {
-//        @Override
-//        public Kategorija createFromParcel(Parcel in) {
-//            return new Kategorija(in);
-//        }
-//
-//        @Override
-//        public Kategorija[] newArray(int size) {
-//            return new Kategorija[size];
-//        }
-//    };
-//
-//    @Override
-//    public int describeContents() {
-//        return 0;
-//    }
-//
-//    @Override
-//    public void writeToParcel(Parcel parcel, int i) {
-//        parcel.writeString(naziv);
-//        parcel.writeString(id);
-//    }
 
 }
 

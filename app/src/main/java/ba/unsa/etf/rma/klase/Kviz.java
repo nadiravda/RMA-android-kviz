@@ -2,12 +2,16 @@ package ba.unsa.etf.rma.klase;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.widget.ArrayAdapter;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
 
 public class Kviz implements Serializable{
     private String naziv;
+    private Random random;
     private ArrayList<Pitanje> pitanja;
     private Kategorija kategorija;
 
@@ -17,7 +21,11 @@ public class Kviz implements Serializable{
         this.pitanja = pitanja;
         this.kategorija = kategorija;
     }
-    public Kviz(){}
+    public Kviz(){
+        pitanja = new ArrayList<>();
+        kategorija = new Kategorija();
+        random = new Random();
+    }
 
     @Override
     public String toString(){
@@ -51,6 +59,14 @@ public class Kviz implements Serializable{
             }
         }
     }
+    public ArrayList<Pitanje> dajRandomPitanja(){
+        ArrayList<Pitanje> novaPitanja = new ArrayList<Pitanje>();
+        if(pitanja!=null){
+            novaPitanja = pitanja;
+        }
+        Collections.shuffle(novaPitanja);
+        return novaPitanja;
+    }
 
     public Kategorija getKategorija() {
         return kategorija;
@@ -63,42 +79,11 @@ public class Kviz implements Serializable{
     public boolean dodajPitanje(Pitanje p){
         if(!this.pitanja.contains(p))
         {
-        pitanja.add(p); return true;
-            }
+            pitanja.add(p);
+            return true;
+        }
         return false;
     }
-
-//    @Override
-//    protected Object clone() throws CloneNotSupportedException {
-//        return super.clone();
-//    }
-//
-//    @Override
-//    public int describeContents() {
-//        return 0;
-//    }
-//
-//    @Override
-//    public void writeToParcel(Parcel parcel, int i) {
-//        parcel.writeString(naziv);
-//    }
-//
-//    protected Kviz(Parcel in) {
-//       naziv = in.readString();
-//
-//    }
-//
-//    public static final Creator<Kviz> CREATOR = new Creator<Kviz>() {
-//        @Override
-//        public Kviz createFromParcel(Parcel in) {
-//            return new Kviz(in);
-//        }
-//
-//        @Override
-//        public Kviz[] newArray(int size) {
-//            return new Kviz[size];
-//        }
-//    };
 
 
 }
