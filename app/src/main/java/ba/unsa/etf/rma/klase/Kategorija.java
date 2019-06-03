@@ -37,6 +37,15 @@ public class Kategorija implements Serializable
         this.id = id;
     }
 
+    @Override
+    public boolean equals(Object o){
+        Kategorija k = (Kategorija) o;
+        if(!this.getNaziv().equals(k.getNaziv()) || !this.getId().equals(k.getId())) {
+            return false;
+        }
+        return true;
+    }
+
 
 }
 

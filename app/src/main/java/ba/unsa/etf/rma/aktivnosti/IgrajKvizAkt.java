@@ -11,10 +11,12 @@ import ba.unsa.etf.rma.R;
 import ba.unsa.etf.rma.klase.Kategorija;
 import ba.unsa.etf.rma.klase.Kviz;
 
+import static ba.unsa.etf.rma.aktivnosti.KvizoviAkt.kategorije;
+import static ba.unsa.etf.rma.aktivnosti.KvizoviAkt.kvizovi;
+
 public class IgrajKvizAkt extends AppCompatActivity {
 
-    public static ArrayList<Kviz> kvizovi;
-    public static ArrayList<Kategorija> kategorije;
+
     public static Kviz kviz;
 
     @Override
@@ -24,15 +26,13 @@ public class IgrajKvizAkt extends AppCompatActivity {
 
 
         Intent intent = getIntent();
-        kvizovi = (ArrayList<Kviz>) intent.getSerializableExtra("kvizovi");
-        kategorije = (ArrayList<Kategorija>) intent.getSerializableExtra("kategorije");
         kviz = (Kviz) intent.getSerializableExtra("kviz");
 
         InformacijeFrag informacijeFrag = new InformacijeFrag();
         FragmentManager manager = getSupportFragmentManager();
         manager.beginTransaction().replace(R.id.InformacijePlace,informacijeFrag).commit();
 
-        PitanjeFrag pitanjeFrag = new PitanjeFrag();
+        RangLista pitanjeFrag = new RangLista();
         manager.beginTransaction().replace(R.id.pitanjePlace,pitanjeFrag).commit();
 
 

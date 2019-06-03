@@ -17,7 +17,9 @@ import android.widget.Toast;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ba.unsa.etf.rma.R;
 import ba.unsa.etf.rma.klase.Pitanje;
@@ -25,8 +27,9 @@ import ba.unsa.etf.rma.klase.Pitanje;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class PitanjeFrag extends Fragment {
+public class RangLista extends Fragment {
 
+    public static ListView kvizic;
     public static ListView odgovoriPitanja;
     public static TextView tekstPitanja;
     public static ArrayList<Pitanje> pitanja = new ArrayList<>();
@@ -41,8 +44,9 @@ public class PitanjeFrag extends Fragment {
 
 public boolean proso = false;
 
-    public PitanjeFrag() {
+    public RangLista() {
         // Required empty public constructor
+
     }
 
     @Override
@@ -60,7 +64,6 @@ public boolean proso = false;
 
        odgovoriPitanja = (ListView) iv.findViewById(R.id.odgovoriPitanja);
        tekstPitanja = (TextView) iv.findViewById(R.id.tekstPitanja);
-
 
         pitanja = IgrajKvizAkt.kviz.dajRandomPitanja();
         final int brojodgovora = pitanja.size();

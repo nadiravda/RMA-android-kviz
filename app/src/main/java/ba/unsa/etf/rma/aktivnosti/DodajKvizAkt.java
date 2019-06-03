@@ -1,63 +1,68 @@
 package ba.unsa.etf.rma.aktivnosti;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
-import android.provider.OpenableColumns;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
-import android.widget.Toast;
-import android.app.Activity;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.common.collect.Lists;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.Buffer;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import ba.unsa.etf.rma.R;
 import ba.unsa.etf.rma.klase.Kategorija;
 import ba.unsa.etf.rma.klase.Kviz;
+import ba.unsa.etf.rma.klase.PitanjaBaza;
 import ba.unsa.etf.rma.klase.Pitanje;
 
-public class DodajKvizAkt extends AppCompatActivity {
+import static ba.unsa.etf.rma.aktivnosti.KvizoviAkt.kategorije;
+import static ba.unsa.etf.rma.aktivnosti.KvizoviAkt.kvizovi;
+
+public class DodajKvizAkt extends AppCompatActivity implements PitanjaBaza.Zavrseno{
 
     private static final int EDIT_REQUEST_CODE = 44;
 
 
-
-
-
     Kviz kvizImport = new Kviz();
     boolean importovan = false;
-    public ArrayList<Kategorija> kategorije;
-    public ArrayList<Pitanje> dodanaPitanja = new ArrayList<>();
-    public ArrayList<Pitanje> dajMogucaPitanja = new ArrayList<>();
-    public ArrayAdapter adapterDodanaPitanja;
-    public ArrayAdapter adapterMogucaPitanja;
-    public ArrayAdapter<Kategorija> adapterKategorije;
+
+    public  ArrayList<Pitanje> dodanaPitanja = new ArrayList<>();
+    public  ArrayList<Pitanje> dajMogucaPitanja = new ArrayList<>();
+    public  ArrayAdapter adapterDodanaPitanja;
+    public  ArrayAdapter adapterMogucaPitanja;
+    public static ArrayAdapter<Kategorija> adapterKategorije;
+    public ArrayList<Pitanje> pitanjaBaza = new ArrayList<>();
+    public Boolean zavrseno = false;
 
 
-    public ArrayList<Kviz> kvizovi = new ArrayList<>();
+
     public static Pitanje zaDodatno = new Pitanje("Dodaj Pitanje",null,null,null);
     public EditText etNaziv;
     public ListView lvDodanaPitanja;
@@ -67,15 +72,28 @@ public class DodajKvizAkt extends AppCompatActivity {
     public Button btnImportKviz ;
     public AlertDialog alertDialog;
 
-
+    @Override
+    public Void onDone(ArrayList<Pitanje> pitanja) {
+        return  null;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         Intent vrijednosti = getIntent();
+
         setContentView(R.layout.activity_dodaj_kviz_akt);
         Kviz neki = new Kviz();
+
+        try {
+            new DajPitanjaIzFire().execute().get();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
 
         alertDialog = new AlertDialog.Builder(DodajKvizAkt.this).create();
         alertDialog.setTitle("Alert");
@@ -86,16 +104,13 @@ public class DodajKvizAkt extends AppCompatActivity {
                         dialog.dismiss();
                     }
                 });
-        //alertDialog.show();
-
-        kvizovi = (ArrayList<Kviz>) vrijednosti.getSerializableExtra("SviKvizovi");
 
 
         //VARIJABLE
 
         btnDodajKviz = (Button) findViewById(R.id.btnDodajKviz);
         spKategorije = (Spinner) findViewById(R.id.spKategorije);
-        etNaziv = (EditText) findViewById(R.id.etNaziv);
+        etNaziv = (EditText) findViewById(R.id.etNazivk);
         lvDodanaPitanja = (ListView) findViewById(R.id.lvDodanaPitanja);
         lvMogucaPitanja = (ListView) findViewById(R.id.lvMogucaPitanja);
         btnImportKviz = (Button) findViewById(R.id.btnImportKviz);
@@ -103,8 +118,9 @@ public class DodajKvizAkt extends AppCompatActivity {
 
         //SPINNER
 
+
         boolean ima = false;
-        kategorije = (ArrayList<Kategorija>) vrijednosti.getSerializableExtra("listaKategorija");
+
         for(Kategorija k : kategorije){
             if(k.getNaziv().equals("Dodaj kategoriju")){
                 ima = true;
@@ -131,6 +147,9 @@ public class DodajKvizAkt extends AppCompatActivity {
                 nova.setId(kategorije.get(i).getId());
                 nova.setNaziv(kategorije.get(i).getNaziv());
                 if (kategorije.get(i).getNaziv().equals("Dodaj kategoriju")) {
+                    intent.putExtra("dodana",dodanaPitanja);
+                    intent.putExtra("moguca",dajMogucaPitanja);
+                    intent.putExtra("naziv",etNaziv.getText().toString());
                     DodajKvizAkt.this.startActivity(intent);
                 }
             }
@@ -140,46 +159,73 @@ public class DodajKvizAkt extends AppCompatActivity {
         });
 
 
-        // DodanaPitanjaListView
-
-
-        // ZA KVIZ
-
+        if (vrijednosti.hasExtra("novaKategorija")) {
+                dajMogucaPitanja = (ArrayList<Pitanje>) vrijednosti.getSerializableExtra("moguca");
+                dodanaPitanja = (ArrayList<Pitanje>) vrijednosti.getSerializableExtra("dodana");
+                String naziv = (String) vrijednosti.getStringExtra("naziv");
+            adapterDodanaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dodanaPitanja);
+            lvDodanaPitanja.setAdapter(adapterDodanaPitanja);
+            adapterDodanaPitanja.notifyDataSetChanged();
+            adapterMogucaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dajMogucaPitanja);
+            lvMogucaPitanja.setAdapter(adapterMogucaPitanja);
+            adapterMogucaPitanja.notifyDataSetChanged();
+            spKategorije.setSelection(kategorije.size()-1);
+            adapterKategorije.notifyDataSetChanged();
+        }
 
 
 
         if (vrijednosti.hasExtra("Novi")) {
-            dajMogucaPitanja = dajSvaPitanja(kvizovi);
-            for(Pitanje p : dajMogucaPitanja){
-                if(p.getNaziv().equals("Obrisi"));
-                dajMogucaPitanja.remove(p);
-                break;
-            }
-            adapterMogucaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dajMogucaPitanja);
-            lvMogucaPitanja.setAdapter(adapterMogucaPitanja);
-            ArrayList<String> pit= new ArrayList<>();
-            pit.add("sarma");
-            dodanaPitanja.add(0,new Pitanje("Dodaj Pitanje","neko",pit,"neko"));
-            adapterDodanaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dodanaPitanja);
-            lvDodanaPitanja.setAdapter(adapterDodanaPitanja);
-            adapterDodanaPitanja.notifyDataSetChanged();
+
+                //dajMogucaPitanja = dajSvaPitanja(kvizovi);
+                dajMogucaPitanja = pitanjaBaza;
+
+                for (Pitanje p : dajMogucaPitanja) {
+                    if (p.getNaziv().equals("Obrisi")) {
+                        dajMogucaPitanja.remove(p);
+                    }
+                    break;
+                }
+                adapterMogucaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dajMogucaPitanja);
+                lvMogucaPitanja.setAdapter(adapterMogucaPitanja);
+                ArrayList<String> pit = new ArrayList<>();
+                pit.add("sarma");
+                if (!dodanaPitanja.contains(new Pitanje("Dodaj Pitanje", "neko", pit, "neko"))) {
+                    dodanaPitanja.add(0, new Pitanje("Dodaj Pitanje", "neko", pit, "neko"));
+                }
+                adapterDodanaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dodanaPitanja);
+                lvDodanaPitanja.setAdapter(adapterDodanaPitanja);
+                adapterDodanaPitanja.notifyDataSetChanged();
 
         }
         if (vrijednosti.hasExtra("Edit")) {
-            // prosljedjen kviz
-            neki = (Kviz) vrijednosti.getSerializableExtra("ZaEdit");
-            spKategorije.setSelection(Integer.parseInt(neki.getKategorija().getId()));
-            etNaziv.setText(neki.getNaziv());
-            // dodana pitanja
-            dodanaPitanja = dajDodana(neki);
-            adapterDodanaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dodanaPitanja);
-            lvDodanaPitanja.setAdapter(adapterDodanaPitanja);
-            adapterDodanaPitanja.notifyDataSetChanged();
-            // moguca pitanja
-            dajMogucaPitanja = DajMogucaPitanja(dajSvaPitanja(kvizovi), neki);
-            adapterMogucaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dajMogucaPitanja);
-            lvMogucaPitanja.setAdapter(adapterMogucaPitanja);
-            adapterMogucaPitanja.notifyDataSetChanged();
+
+                // prosljedjen kviz
+                neki = (Kviz) vrijednosti.getSerializableExtra("ZaEdit");
+                spKategorije.setSelection(dajSpKategoriju(neki.getKategorija().getNaziv()));
+                etNaziv.setText(neki.getNaziv());
+                // dodana pitanja
+
+                dodanaPitanja = dajDodana(neki);
+
+                adapterDodanaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dodanaPitanja);
+                lvDodanaPitanja.setAdapter(adapterDodanaPitanja);
+                adapterDodanaPitanja.notifyDataSetChanged();
+
+                // moguca pitanja
+
+                dajMogucaPitanja = DajMogucaPitanja(pitanjaBaza, neki);
+
+                for (Pitanje p : dajMogucaPitanja) {
+                    if (p.getNaziv().equals("Obrisi")) {
+                        dajMogucaPitanja.remove(p);
+                        break;
+                    }
+
+                }
+                adapterMogucaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dajMogucaPitanja);
+                lvMogucaPitanja.setAdapter(adapterMogucaPitanja);
+                adapterMogucaPitanja.notifyDataSetChanged();
         }
 
 
@@ -221,8 +267,9 @@ public class DodajKvizAkt extends AppCompatActivity {
             }
         });
 
-        if(vrijednosti.hasExtra("novoPitanje")){
 
+
+        if(vrijednosti.hasExtra("novoPitanje")){
 
             dodanaPitanja = (ArrayList<Pitanje>) vrijednosti.getSerializableExtra("dodana");
             dajMogucaPitanja = (ArrayList<Pitanje>) vrijednosti.getSerializableExtra("moguca");
@@ -259,6 +306,15 @@ public class DodajKvizAkt extends AppCompatActivity {
                     if(k.getNaziv().equals(etNaziv.getText().toString())){
                         etNaziv.setBackgroundColor(getResources().getColor(R.color.colorAccent));
                         proslo=false;
+                        AlertDialog alertDialog = new AlertDialog.Builder(DodajKvizAkt.this).create();
+                        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                        alertDialog.setMessage("Uneseni kviz vec postoji!");
+                        alertDialog.show();
                     }
                 }
                 if(novi.getKategorija().getNaziv().equals("Dodaj kategoriju")){
@@ -270,6 +326,7 @@ public class DodajKvizAkt extends AppCompatActivity {
                 }
                 if(proslo){
                     kvizovi.add(novi);
+                    new DodajKvizUBazu().execute(novi);
                     novi.obrisiPitanje("Dodaj Pitanje");
                     Intent vratiKvizNaPocetnu =new Intent(DodajKvizAkt.this,KvizoviAkt.class);
                     String odNovog = novi.getKategorija().getId();
@@ -293,10 +350,7 @@ public class DodajKvizAkt extends AppCompatActivity {
             }
         });
 
-
     }
-
-
 
     @Override
     public void onActivityResult(int requestCode, int resultCode,
@@ -429,15 +483,19 @@ public class DodajKvizAkt extends AppCompatActivity {
         lvDodanaPitanja.setAdapter(adapterDodanaPitanja);
         adapterDodanaPitanja.notifyDataSetChanged();
         // moguca pitanja
+
         dajMogucaPitanja = DajMogucaPitanja(dajSvaPitanja(kvizovi), kvizImport);
+        for(Pitanje p : dajMogucaPitanja){
+            if(p.getNaziv().equals("Obrisi")) {
+                dajMogucaPitanja.remove(p);
+            }
+            break;
+        }
         adapterMogucaPitanja = new ArrayAdapter<Pitanje>(this, android.R.layout.simple_list_item_1, dajMogucaPitanja);
         lvMogucaPitanja.setAdapter(adapterMogucaPitanja);
         adapterMogucaPitanja.notifyDataSetChanged();
 
     }
-
-
-
 
     public Kategorija DaLiPostojiKategorija(String s){
         boolean a = true;
@@ -507,15 +565,178 @@ public class DodajKvizAkt extends AppCompatActivity {
     public ArrayList<Pitanje> dajDodana( Kviz k) {
         ArrayList<Pitanje> svaPitanja = new ArrayList<>();
         Pitanje pitanje =new Pitanje(zaDodatno);
-        svaPitanja.add(zaDodatno);
+        if(!svaPitanja.contains(zaDodatno)) {
+            svaPitanja.add(zaDodatno);
+        }
         for (int i = 0; i < k.getPitanja().size(); i++) {
             svaPitanja.add(k.getPitanja().get(i));
         }
         return svaPitanja;
     }
 
+    public class DajPitanjaIzFire extends AsyncTask<String,Void,String> {
+            @Override
+        protected String doInBackground(String... params) {
+            GoogleCredential credentials;
+
+
+            try{
+                InputStream tajnaStream = getResources().openRawResource(R.raw.secret);
+                credentials = GoogleCredential.fromStream(tajnaStream).createScoped(Lists.newArrayList("https://www.googleapis.com/auth/datastore"));
+                credentials.refreshToken();
+                String TOKEN = credentials.getAccessToken();
+
+                String url = "https://firestore.googleapis.com/v1/projects/rmaspirala3/databases/(default)/documents/Pitanja?access_token=";
+                URL urlObj = new URL(url + URLEncoder.encode(TOKEN, "UTF-8"));
+                HttpURLConnection conn = (HttpURLConnection)urlObj.openConnection();
+
+                conn.setRequestProperty("Content-type", "application/json");
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Accept", "application/json");
+                InputStream in = new BufferedInputStream(conn.getInputStream());
+
+                String rezultat = convertStreamToString(in);
+
+
+                try {
+                    JSONObject jo = new JSONObject(rezultat);
+
+                    JSONArray items = jo.getJSONArray("documents");
+                    for (int i = 0; i < items.length(); i++) {
+                        JSONObject p = items.getJSONObject(i).getJSONObject("fields");
+
+                        JSONObject naziv = p.getJSONObject("naziv");
+                        String imePitanja = naziv.getString("stringValue");
+
+                        JSONObject ODG = p.getJSONObject("odgovori");
+                        JSONObject ODG1 = ODG.getJSONObject("arrayValue");
+                        JSONArray ODGNiz = ODG1.getJSONArray("values");
+
+                        ArrayList<String> nagovori = new ArrayList<>();
+                        for(int j = 0; j<ODGNiz.length(); j++){
+                            JSONObject redom = ODGNiz.getJSONObject(j);
+                            nagovori.add(redom.getString("stringValue"));
+                        }
+                        JSONObject nazivTacnog = p.getJSONObject("indexTacnog");
+                        int imeTacnog = nazivTacnog.getInt("integerValue");
+
+                        pitanjaBaza.add(new Pitanje(imePitanja,"",nagovori,nagovori.get(imeTacnog)));
+
+                        System.out.println(" ime " + imePitanja + "prvi odg " + nagovori.get(0) + "tacan" + imeTacnog);
+                    }
+
+                } catch (JSONException e) {
+                    Log.e("aplikacija", "unexpected JSON exception", e);
+                }
+
+                Log.e("odgovor", rezultat);
+
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    public String convertStreamToString(InputStream is) {
+        BufferedReader reader = new BufferedReader(new
+                InputStreamReader(is));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        try {
+            while ((line = reader.readLine()) != null) {
+                sb.append(line + "\n");
+            }
+        } catch (IOException e) {
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+            }
+        }
+        return sb.toString();
+    }
+
+    public int dajSpKategoriju(String s){
+        Integer to = 0;
+        for(int i = 0;i<kategorije.size(); i++){
+                if(kategorije.get(i).getNaziv().equals(s)){
+                    to = i; break;
+                }
+        }
+        return to;
+    }
+
+    public class DodajKvizUBazu extends AsyncTask<Kviz, Void, Void>{
+        GoogleCredential credentials;
+
+        @Override
+        protected Void doInBackground(Kviz... params) {
+            try {
+                Kviz zaBazu = params[0];
+
+                InputStream tajnaStream = getResources().openRawResource(R.raw.secret);
+                credentials = GoogleCredential.fromStream(tajnaStream).createScoped(Lists.newArrayList("https://www.googleapis.com/auth/datastore"));
+                credentials.refreshToken();
+
+                String TOKEN = credentials.getAccessToken();
+
+                String dodati = new String();
+                String url = "https://firestore.googleapis.com/v1/projects/rmaspirala3/databases/(default)/documents/Kvizovi?access_token=";
+                URL urlObj = new URL(url + URLEncoder.encode(TOKEN, "UTF-8"));
+                HttpURLConnection conn = (HttpURLConnection)urlObj.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-type", "application/json");
+                conn.setRequestProperty("Accept", "application/json");
+
+
+                try {
+                  //  JSONObject dokument = new JSONObject();
+                    JSONArray ar =  new JSONArray();
+
+                    for(Pitanje p: zaBazu.getPitanja()){
+                        JSONObject svaki = new JSONObject();
+                        svaki.put("stringValue", p.getNaziv());
+                        ar.put(svaki);
+                    }
+                    JSONObject polja = new JSONObject();
+
+                  //  dokument.put("fields", fields);
+                    polja.put("naziv", new JSONObject().put("stringValue", zaBazu.getNaziv()));
+                    polja.put("idKategorije", new JSONObject().put("stringValue", zaBazu.getKategorija().getNaziv()));
+                    polja.put("pitanja", new JSONObject().put("arrayValue", new JSONObject().put("values", ar)));
+                    dodati = "{\"fields\":" + polja.toString() + "}" ;
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                try(OutputStream os = conn.getOutputStream()){
+                    byte[] input = dodati.getBytes("UTF-8");
+                    os.write(input, 0, input.length);
+
+                }
+
+                int code = conn.getResponseCode();
+                InputStream odgovor = conn.getInputStream();
+                try(BufferedReader br = new BufferedReader(new InputStreamReader(odgovor, "utf-8"))){
+                    StringBuilder response = new StringBuilder();
+                    String responseLine = null;
+                    while((responseLine = br.readLine()) != null){
+                        response.append(responseLine.trim());
+                    }
+                    Log.d("ODGOVOR", response.toString());
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
 
 }
+
 
 
 

@@ -17,6 +17,8 @@ import ba.unsa.etf.rma.aktivnosti.IgrajKvizAkt;
 import ba.unsa.etf.rma.aktivnosti.KvizoviAkt;
 import ba.unsa.etf.rma.klase.Kategorija;
 import ba.unsa.etf.rma.klase.Kviz;
+import static ba.unsa.etf.rma.aktivnosti.KvizoviAkt.kategorije;
+import static ba.unsa.etf.rma.aktivnosti.KvizoviAkt.kvizovi;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -54,9 +56,6 @@ public class InformacijeFrag extends Fragment {
         infNazivKviza.setText(IgrajKvizAkt.kviz.getNaziv());
 
 
-        kate = IgrajKvizAkt.kategorije;
-
-        kvi = IgrajKvizAkt.kvizovi;
 
         btnKraj.setOnClickListener(new View.OnClickListener() {
             @Override

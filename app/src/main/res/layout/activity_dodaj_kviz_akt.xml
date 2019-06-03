@@ -36,11 +36,11 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.503"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/etNaziv"
+        app:layout_constraintTop_toBottomOf="@+id/etNazivk"
         app:layout_constraintVertical_bias="0.0" />
 
     <EditText
-        android:id="@+id/etNaziv"
+        android:id="@+id/etNazivk"
         android:layout_width="250dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="452dp"
@@ -69,7 +69,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/etNaziv"
+        app:layout_constraintTop_toBottomOf="@+id/etNazivk"
         app:layout_constraintVertical_bias="0.18" />
 
     <ListView
