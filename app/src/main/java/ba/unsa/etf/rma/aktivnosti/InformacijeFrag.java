@@ -45,7 +45,7 @@ public class InformacijeFrag extends Fragment {
         // Inflate the layout for this fragment
 
         View iv = inflater.inflate(R.layout.fragment_informacije, container, false);
-
+//
         infNazivKviza = (TextView) iv.findViewById(R.id.infNazivKviza);
         infBrojTacnihPitanja = (TextView) iv.findViewById(R.id.infBrojTacnihPitanja);
         infBrojPreostalihPitanja = (TextView) iv.findViewById(R.id.infBrojPreostalihPitanja);
@@ -55,7 +55,7 @@ public class InformacijeFrag extends Fragment {
         infNazivKviza.setText(IgrajKvizAkt.kviz.getNaziv());
 
 
-//        kate = IgrajKvizAkt.kategorije;
+//       kate = IgrajKvizAkt.kategorije;
 //
 //        kvi = IgrajKvizAkt.kvizovi;
 
@@ -69,7 +69,7 @@ public class InformacijeFrag extends Fragment {
         });
 
         return iv;
-    }
+        }
 
 
 }

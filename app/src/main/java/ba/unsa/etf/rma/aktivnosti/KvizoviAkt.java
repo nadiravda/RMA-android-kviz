@@ -1,9 +1,20 @@
 package ba.unsa.etf.rma.aktivnosti;
 
+import android.Manifest;
+import android.content.ContentUris;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.CalendarContract;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.Time;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -22,10 +33,16 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.concurrent.ExecutionException;
 
 import ba.unsa.etf.rma.R;
+import ba.unsa.etf.rma.klase.Baza;
 import ba.unsa.etf.rma.klase.Kategorija;
 import ba.unsa.etf.rma.klase.Kviz;
 import ba.unsa.etf.rma.klase.KvizContainer;
@@ -37,6 +54,8 @@ import com.google.common.collect.Lists;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import static ba.unsa.etf.rma.klase.Baza.TABLE_KVIZ;
 
 public class KvizoviAkt extends AppCompatActivity {
 
@@ -96,13 +115,31 @@ public class KvizoviAkt extends AppCompatActivity {
     ArrayList<Pitanje> pitanjaBaza = new ArrayList<>();
     ArrayList<Kviz> pomocni = new ArrayList<>();
     public static boolean ucitano = true;
+    Boolean koji = false;
+    final static int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 20;
+    ArrayList<String> dogadjaj = new ArrayList<>();
+    ArrayList<Date> datumi = new ArrayList<>();
+    Date datum;
+    Baza db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+//        db.getWritableDatabase().delete(TABLE_KVIZ,null,null);
+//        db = new Baza(this);
+//        ArrayList<Pitanje> a = new ArrayList<>();
+//         ArrayList<String> k = new ArrayList<>();
+//         k.add("as");
+//        a.add(new Pitanje("vra","",k,"0"));
+//        Kategorija o = new Kategorija("nov","0");
+//        db.dodajKviz(new Kviz("sarm1a",a,o));
+//        Kategorija o1 = new Kategorija("nov","0");
+//        db.dodajKategoriju(o);
+//        kategorije = db.getKategorije();
+//        kvizovi = db.getKvizovi();
+//        pomocni = kvizovi;
 
         // new KreirajDokumentTask().execute("proba");
 
@@ -110,6 +147,18 @@ public class KvizoviAkt extends AppCompatActivity {
         spPostojeceKategorije = (Spinner) findViewById(R.id.spPostojeceKategorije);
         lvKvizovi = (ListView) findViewById(R.id.lvKvizovi);
 
+        if (ContextCompat.checkSelfPermission(KvizoviAkt.this, Manifest.permission.READ_CALENDAR)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(KvizoviAkt.this,
+                    new String[]{Manifest.permission.READ_CALENDAR},
+                    MY_PERMISSIONS_REQUEST_READ_CONTACTS);
+        }
+            else{
+                DajEventove();
+        }
+
+
+        System.out.println("KOliko eevntova " + dogadjaj.size());
 
         if (kategorije.contains(new Kategorija("Dodaj kategoriju", "0"))) {
             kategorije.remove(new Kategorija("Dodaj kategoriju", "0"));
@@ -209,15 +258,44 @@ public class KvizoviAkt extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-                if (i != 0) {
-                    Intent intent = new Intent(KvizoviAkt.this, IgrajKvizAkt.class);
-                    intent.putExtra("kategorije", kategorije);
-                    intent.putExtra("kvizovi", kvizovi);
-                    Kviz novi = new Kviz();
-                    novi = kvizovi.get(i);
-                    intent.putExtra("kviz", novi);
-                    KvizoviAkt.this.startActivity(intent);
-                }
+                    if(kvizovi.get(i).getPitanja() != null && i!=0) {
+                        int minuta = kvizovi.get(i).getPitanja().size();
+                        if (minuta % 2 != 0) {
+                            minuta++;
+                        }
+                        minuta = minuta / 2;
+
+                        datum = new Date();
+                        datum.setTime(DajVrijeme() + minuta * 1000 * 60);
+                        Integer k = DaLiSePoklapa(datum);
+                        if(!k.equals("uredu je") && k>0){
+                           AlertDialog alertDialog = new AlertDialog.Builder(KvizoviAkt.this).create();
+                            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                        }
+                                    });
+                            alertDialog.setMessage("Imate dogadjaj za " + k.toString() + " minute");
+                            alertDialog.show();
+                        }
+                        else {
+                            if (i != 0) {
+                                Intent intent = new Intent(KvizoviAkt.this, IgrajKvizAkt.class);
+                                intent.putExtra("kategorije", kategorije);
+                                intent.putExtra("kvizovi", kvizovi);
+                                Kviz novi = new Kviz();
+                                if (!koji) {
+                                    novi = kvizovi.get(i);
+                                } else {
+                                    novi = pomocni.get(i);
+                                }
+                                intent.putExtra("kviz", novi);
+
+                                KvizoviAkt.this.startActivity(intent);
+                            }
+                        }
+                    }
             }
         });
 
@@ -247,8 +325,6 @@ public class KvizoviAkt extends AppCompatActivity {
         });
 
     }
-
-
     // POMOCNA METODA ZA FILTRIRANJE
     public void DajTrazenuKategoriju(String s) {
 
@@ -257,8 +333,10 @@ public class KvizoviAkt extends AppCompatActivity {
         if (s.equals("Svi")) {
             adapterKvizovi = new ArrayAdapter<Kviz>(this, android.R.layout.simple_list_item_1, kvizovi);
             lvKvizovi.setAdapter(adapterKvizovi);
+            koji = false;
 
         } else {
+            koji = true;
             pomocni = new ArrayList<>();
             for (Kviz k : kvizovi) {
                // int tmp = Integer.parseInt(k.getKategorija().getId());
@@ -496,6 +574,115 @@ public class KvizoviAkt extends AppCompatActivity {
         }
 
 
+    public void DajEventove() {
+        final String[] INSTANCE_PROJECTION = new String[] {
+                CalendarContract.Instances.EVENT_ID,      // 0
+                CalendarContract.Instances.BEGIN,         // 1
+                CalendarContract.Instances.TITLE,          // 2
+                CalendarContract.Instances.ORGANIZER
+        };
+
+        // The indices for the projection array above.
+        final int PROJECTION_ID_INDEX = 0;
+        final int PROJECTION_BEGIN_INDEX = 1;
+        final int PROJECTION_TITLE_INDEX = 2;
+        final int PROJECTION_ORGANIZER_INDEX = 3;
+
+        // Specify the date range you want to search for recurring event instances
+        Calendar beginTime = Calendar.getInstance();
+        beginTime.set(2019, 2, 23, 8, 0);
+        long startMillis = beginTime.getTimeInMillis();
+        Calendar endTime = Calendar.getInstance();
+        endTime.set(2050, 1, 24, 8, 0);
+        long endMillis = endTime.getTimeInMillis();
+
+
+        // The ID of the recurring event whose instances you are searching for in the Instances table
+        String selection = CalendarContract.Instances.EVENT_ID + " = ?";
+        String[] selectionArgs = new String[] {"207"};
+
+        // Construct the query with the desired date range.
+        Uri.Builder builder = CalendarContract.Instances.CONTENT_URI.buildUpon();
+        ContentUris.appendId(builder, startMillis);
+        ContentUris.appendId(builder, endMillis);
+
+        // Submit the query
+        Cursor cur =  getContentResolver().query(builder.build(), INSTANCE_PROJECTION, null, null, null);
+
+
+
+        while (cur.moveToNext()) {
+
+            // Get the field values
+            long eventID = cur.getLong(PROJECTION_ID_INDEX);
+            long beginVal = cur.getLong(PROJECTION_BEGIN_INDEX);
+            String title = cur.getString(PROJECTION_TITLE_INDEX);
+            String organizer = cur.getString(PROJECTION_ORGANIZER_INDEX);
+
+            // Do something with the values.
+            Log.i("Calendar", "Event:  " + title);
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(beginVal);
+            DateFormat formatter = new SimpleDateFormat("MM/dd/yyyy");
+            Log.i("Calendar", "Date: " + formatter.format(calendar.getTime()));
+            datumi.add(calendar.getTime());
+            dogadjaj.add(String.format("Event: %s\nOrganizer: %s\nDate: %s", title, organizer, formatter.format(calendar.getTime())));
+        }
+
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_READ_CONTACTS : {
+
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    DajEventove();
+
+                } else {
+
+                }
+                return;
+            }
+
+        }
+    }
+
+    public long DajVrijeme(){
+        Date d = new Date();
+        d.setTime(System.currentTimeMillis());
+
+        if(d.getMinutes() > 0){
+            d.setSeconds(0);
+            d.setMinutes(d.getMinutes()+1);
+        }
+        return d.getTime();
+    }
+
+    public int DaLiSePoklapa(Date d){
+        int vrijeme = 0;
+        for(int i =0; i<datumi.size();i++){
+            if(d.getYear() == datumi.get(i).getYear() && d.getMonth() == datumi.get(i).getMonth() && d.getDay() == datumi.get(i).getDay() ){
+                if( d.getTime()>=datumi.get(i).getTime() && datumi.get(i).getMinutes() - new Date(DajVrijemee()).getMinutes()>0){
+                  vrijeme  = datumi.get(i).getMinutes() - new Date(DajVrijemee()).getMinutes();
+                    return vrijeme;
+                }
+            }
+        }
+        return 0;
+    }
+
+    public long DajVrijemee(){
+        Date d = new Date();
+        d.setTime(System.currentTimeMillis());
+
+        if(d.getMinutes() > 0){
+            d.setSeconds(0);
+            d.setMinutes(d.getMinutes());
+        }
+        return d.getTime();
+    }
 
     }
 
